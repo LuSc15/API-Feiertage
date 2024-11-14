@@ -5,86 +5,110 @@ namespace API_Feiertage
 {
     internal class Program
     {
-        static (string bundesland, string kuerzel)[] bundesländer = { ("Baden-Württemberg","BW"), ("Brandenburg","BB"), ("Hessen", "HE"), ("NRW", "NW"),("Sachsen","SN"),("Thüringen","TH"),("Bayern","BY"),("Bremen","HB"),("Mecklenburg-Vorpommern","MV"),("Rheinland-Pfalz","RP"),("Sachsen-Anhalt","ST"),("Berlin","BE")
-            , ("Hamburg","HH"),("Niedersachsen","NI"), ("Saarland","SL"),("Schleswig-Holstein","SH")};
+        public static List<(string bundesland, string kuerzel)> bundesländer = new List<(string bundesland, string kuerzel)>{ ("Baden-Württemberg","BW"), ("Brandenburg","BB"), ("Hessen", "HE"), ("NRW", "NW"),("Sachsen","SN"),("Thüringen","TH"),("Bayern","BY"),("Bremen","HB"),("Mecklenburg-Vorpommern","MV"),("Rheinland-Pfalz","RP"),("Sachsen-Anhalt","ST"),("Berlin","BE"),("Hamburg","HH"),("Niedersachsen","NI"), ("Saarland","SL"),("Schleswig-Holstein","SH")};
+
         static void Main(string[] args)
         {
-            string bundesland = string.Empty;
-            string jahr = string.Empty;
-
-
-            bundesland = blWaehlen();
+            string bundeslandKuerzel = BundeslandWaehlen();
             Console.WriteLine("Jahr eingeben:");
-            jahr = Console.ReadLine();
+            string jahr = Console.ReadLine();
             Console.Clear();
-            GetData(bundesland, jahr);
-
-
-
-
-      
-         
+            Console.WriteLine($"Feiertage für {bundesländer.Where(x => x.kuerzel == bundeslandKuerzel.ToUpper()).Select(x => x.bundesland).ToArray()[0]} {jahr}:"); //Direktes Ansprechen des Tuple leider nicht möglich, Index 0 vom Tuple-Array = Bundesland (ausgeschrieben)
+            GetData(bundeslandKuerzel, jahr);
         }
 
+        /// <summary>
+        /// Bundesland und Jahr an API übergeben und zurückgegebene JSON-Datei ausgeben
+        /// </summary>
+        /// <param name="bundeslandKuerzel">kleingeschriebenes Kürzel des Bundeslandes</param>
+        /// <param name="jahr">Jahr im Stringformat</param>
         public static void GetData(string bundesland, string jahr)
         {
             HttpClient client = new HttpClient();
-
-            Console.WriteLine($"Feiertage für {bundesländer.Where(x => x.kuerzel == bundesland.ToUpper()).Select(x => x.bundesland).ToArray()[0]} {jahr}:"); //Direktes Ansprechen des Tuple leider nicht möglich, Index 0 vom Tuple-Array = Bundesland (ausgeschrieben)
-
             Rootobject root = client.GetFromJsonAsync<Rootobject>("https://get.api-feiertage.de?years=" + jahr + "&states=" + bundesland).Result;
+
             if (root != null)
             {
-                if (root.feiertage != null)
+                if (root.feiertage != null)                                 //Gültige Eingabe => Feiertage ausgeben
                 {
                     foreach (Feiertage i in root.feiertage)
                     {
                         Console.WriteLine(i.fname + i.date);
                     }
                 }
-                else
+                else                                                        //Fehlermeldung innerhalb der JSON-Datei bei ungültiger Jahreszahl
                 {
                     Console.WriteLine(root.additional_note);
                 }
             }
+            else
+            {
+                Console.WriteLine("JSON-Datei konnte nicht geladen werden");
+            }
         }
-        public static string blWaehlen()
-        {
-            string bundesland;
-            bool gültig = false;
 
-            Console.WriteLine("Bundesland eingeben:");
+        /// <summary>
+        /// Prüft ob es sich bei der Kürzeleingabe um ein gültiges Bundesland handelt
+        /// </summary>
+        /// <returns>Das Kürzel des gewählten Bundeslandes in Kleinbuchstaben</returns>
+        public static string BundeslandWaehlen()
+        {
+            string bundeslandKuerzel;
+
+            Console.WriteLine("Bundesland eingeben:");              //Bundesländer und Kürzel ausgeben
             foreach ((string, string) tuple in bundesländer)
             {
                 Console.WriteLine(tuple.Item1 + " - " + tuple.Item2);
             }
             Console.WriteLine();
-
-            while (!gültig)
+            
+            while (true)             //Loopen bis gültige Eingabe vorliegt
             {
                 try
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    bundesland = Console.ReadLine().ToLower();
-                    Console.ResetColor();
-                    if (bundesländer.Where(x => x.kuerzel.ToLower() == bundesland).Count() != 1)
+                    bundeslandKuerzel = Console.ReadLine().ToLower();
+
+                    if (bundesländer.Where(x => x.kuerzel.ToLower() == bundeslandKuerzel).Count() != 1)        //Ungültige Eingabe
                     {
                         Console.Clear();
                         foreach ((string, string) tuple in bundesländer)
                         {
                             Console.WriteLine(tuple.Item1 + " - " + tuple.Item2);
                         }
-                        throw new Exception("Ungültiges Kürzel " + bundesland + ". Bitte erneut eingeben");
+                        throw new Exception("Ungültiges Kürzel " + bundeslandKuerzel + ". Bitte erneut eingeben"); //Eingabemaske durch throw erneut aufrufen
                     }
-                    return bundesland;
+                    return bundeslandKuerzel;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
                 }
-            }
-            return null;
-            
+            }   
+            //neu
+           /* while (true) // Loopen bis gültige Eingabe vorliegt
+            {
+                Console.Clear();
+                foreach ((string, string) tuple in bundesländer)
+                {
+                    Console.WriteLine($"{tuple.Item1} - {tuple.Item2}");
+                }
+                bundeslandKuerzel = Console.ReadLine().ToLower();
+                try
+                {
+                    if (!bundesländer.Any(x => x.kuerzel.ToLower() == bundeslandKuerzel)) // Ungültige Eingabe
+                    {
+                        throw new Exception($"Ungültiges Kürzel {bundeslandKuerzel}. Bitte erneut eingeben");
+                    }
+                    return bundeslandKuerzel;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Console.ReadLine();
+                }
+            }*/
+            //ende neu 
+            return null;  
         }
     }
 }
