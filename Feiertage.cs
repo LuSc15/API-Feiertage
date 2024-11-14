@@ -12,6 +12,8 @@ namespace API_Feiertage
     {
         public string status { get; set; }
         public Feiertage[] feiertage { get; set; }
+
+        public string additional_note { get; set; }
     }
 
     public class Feiertage
